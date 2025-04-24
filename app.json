@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "EquipoBasquetReactNative", 
+    "name": "EquipoBasquetReactNative",
     "slug": "EquipoBasquetReactNative",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,7 +21,6 @@
         "backgroundColor": "#ffffff"
       }
     },
-    
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -48,7 +47,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

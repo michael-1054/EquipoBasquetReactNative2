@@ -1,87 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { RouteProp } from '@react-navigation/native'; // Importa RouteProp
-import { RootStackParamList } from '../types/types'; // Importa el tipo de parámetros
-import firestore from '@react-native-firebase/firestore';
+// app/screens/PlayerDetails.tsx
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, StyleSheet, ActivityIndicator, Button } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { db, storage } from '../../_helpers/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { ref, getDownloadURL } from 'firebase/storage';
 
-// Tipo para las props, incluyendo 'route'
-type PlayerDetailsRouteProp = RouteProp<RootStackParamList, 'PlayerDetails'>;
+export default function PlayerDetails() {
+  const { playerId } = useLocalSearchParams<{ playerId: string }>();
+  const [player, setPlayer] = useState<any>();
+  const [photoUrl, setPhotoUrl] = useState<string>();
 
-interface PlayerDetailsProps {
-  route: PlayerDetailsRouteProp; // Tipamos la propiedad 'route' correctamente
-}
-
-const PlayerDetails: React.FC<PlayerDetailsProps> = ({ route }) => {
-  const { playerId } = route.params; // Obtiene el ID del jugador desde la navegación
-  const [player, setPlayer] = useState(null); // Cambié el estado inicial a null para simplificar la verificación
-  // Simula la carga de detalles de un jugador
   useEffect(() => {
-    const fetchPlayerDetails = async () => {
+    let mounted = true;
+
+    (async () => {
       try {
-        const documentSnapshot = await firestore()
-          .collection('players')
-          .doc(playerId) // Recupera un documento específico
-          .get();
+        // 1 · leer documento
+        const snap = await getDoc(doc(db, 'players', String(playerId)));
+        if (!snap.exists()) return;
 
-        if (documentSnapshot.exists) {
-          setPlayer(documentSnapshot.data()); // Establece los datos del jugador en el estado
-        } else {
-          console.error("No se encontró ningún jugador con el ID proporcionado.");
+        const data = snap.data();
+        setPlayer(data);
+
+        // 2 · limpiar la ruta de la foto
+        let rawPath = String(data.foto ?? '').trim();   // puede ser "", null, etc.
+
+        if (!rawPath) return;                           // no hay foto
+
+        if (!rawPath.startsWith('http')) {
+          // quita "assets/" si quedó grabado así
+          rawPath = rawPath.replace(/^assets\//, '');
         }
-      } catch (error) {
-        console.error("Error al recuperar los detalles del jugador: ", error);
-      }
-    };
 
-    fetchPlayerDetails();
+        console.log('[DEBUG-foto]', `"${rawPath}"`);
+
+        // 3 · obtener URL final
+        const url = rawPath.startsWith('http')
+          ? rawPath                                    // URL externa
+          : await getDownloadURL(ref(storage, rawPath)); // ruta en bucket
+
+        if (mounted) setPhotoUrl(url);
+
+      } catch (err) {
+        console.warn('⚠️  Error cargando detalle', err);
+      }
+    })();
+
+    return () => { mounted = false; };
   }, [playerId]);
 
-  if (!player) {
-    return (
-      <View style={styles.container}>
-        <Text>Cargando...</Text>
-      </View>
-    );
+  if (!player || !photoUrl) {
+    return <ActivityIndicator style={{ marginTop: 40 }} />;
   }
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: 'url_to_image' }} style={styles.image} />
-      <Text style={styles.name}>{player.nombre}</Text>
-      <Text style={styles.name}>{player.apellidos}</Text>
+      <Image source={{ uri: photoUrl }} style={styles.image} />
+      <Text style={styles.name}>{player.nombre} {player.apellidos}</Text>
       <Text style={styles.position}>{player.posicion}</Text>
-      <Text style={styles.bio}>Edad: {player.edad}</Text>
-      <Text style={styles.bio}>Altura: {player.altura}</Text>
-      <Text style={styles.bio}>Equipo: {player.equipo}</Text>
+      <Text>Edad: {player.edad}</Text>
+      <Text>Altura: {player.altura}</Text>
+      <Text>Equipo: {player.equipo}</Text>
+
+      <Button
+        title="Ver vídeo"
+        onPress={() =>
+          router.push({
+            pathname: '/screens/MediaPlayer',
+            params: { mediaPath: player.video },
+          })
+        }
+      />
     </View>
   );
-};
-
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    alignItems: 'center',
-  },
-  image: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    marginBottom: 16,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  position: {
-    fontSize: 18,
-    color: 'gray',
-  },
-  bio: {
-    fontSize: 16,
-    marginTop: 16,
-  },
+  container: { flex: 1, alignItems: 'center', padding: 16 },
+  image: { width: 220, height: 220, borderRadius: 110, marginBottom: 16 },
+  name: { fontSize: 26, fontWeight: 'bold' },
+  position: { fontSize: 18, color: 'gray', marginBottom: 8 },
 });
-
-export default PlayerDetails;

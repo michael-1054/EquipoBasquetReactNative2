@@ -1,102 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { FlatList, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import PlayerCard from '../components/PlayerCard'; // Componente de tarjeta para el jugador
-import { RootStackParamList } from '../types/types';
-import firestore from '@react-native-firebase/firestore';
-import { ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useFocusEffect, router } from 'expo-router';
+import PlayerCard from '../../components/PlayerCard';
 
+import { db } from '../../_helpers/firebase';
+import {
+  collection,
+  orderBy,
+  limit,
+  startAfter,
+  query,
+  getDocs,
+  DocumentData,
+  QueryDocumentSnapshot,
+} from 'firebase/firestore';
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList, // Usamos el tipo de nuestro stack
-  'Home' // Especificamos la pantalla actual
->;
-
-interface HomeScreenProps {
-  navigation: HomeScreenNavigationProp; // Tipamos la propiedad navigation
+interface Player extends DocumentData {
+  id: string;
 }
 
-// Definir un tipo para un jugador
-interface Player {
-    id: string;
-    nombre: string;
-    posicion: string;
-    altura: string;
-    apellidos:string;
-    edad: number;
-    equipo: string;
-    foto: string;
-    video: string;
-  }
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const [loading, setLoading] = useState(true); // Set loading to true on component mount
-    const [players, setPlayers] = useState([]); // Initial empty array of users
-  // Aquí simulas la carga de los jugadores (podría venir de una API o base de datos)
-  useEffect(() => {
-    const subscriber = firestore().collection('players').onSnapshot(querySnapshot => {
-      const players = [];
+const PAGE = 10;
 
-      querySnapshot.forEach(documentSnapshot => {
-        players.push({
-          ...documentSnapshot.data(),
-          key: documentSnapshot.id
-      });
-  });
-    setPlayers(players);
+export default function HomeScreen() {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPlayers = async (first = false) => {
+    const q = first
+      ? query(collection(db, 'players'), orderBy('nombre'), limit(PAGE))
+      : query(collection(db, 'players'), orderBy('nombre'), startAfter(lastDoc), limit(PAGE));
+
+    const snap = await getDocs(q);
+    if (snap.empty) return;
+
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    setPlayers((prev) => (first ? list : [...prev, ...list]));
+    setLastDoc(snap.docs[snap.docs.length - 1]);
     setLoading(false);
-});
+  };
 
-  // Unsubscribe from events when no longer in use
-  return () => subscriber();
-/*
-    const fetchPlayers = () => {
-      // Simulando una lista de jugadores
-      const playerList: Player[] = [
-        { id: '1', name: 'LeBron James', position: 'Forward', image: 'url_to_image_1' },
-        { id: '2', name: 'Stephen Curry', position: 'Guard', image: 'url_to_image_2' },
-        // Añade más jugadores
-      ];
-      setPlayers(playerList);
-    };
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchPlayers(true);
+      return () => { };
+    }, [])
+  );
 
-    fetchPlayers();
-    */
-  }, []);
-
-  if (loading) {
-    return <ActivityIndicator />;
-  }
-
-
-  const renderItem = ({ item }) => (
-    <TouchableOpacity onPress={() => navigation.navigate('PlayerDetails', { playerId: item.key })}>
+  const renderItem = ({ item }: { item: Player }) => (
+    <TouchableOpacity
+      onPress={() =>
+        router.push({ pathname: '/screens/PlayerDetails', params: { playerId: item.id } })
+      }
+    >
       <PlayerCard player={item} />
     </TouchableOpacity>
   );
 
+  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} />;
+
   return (
-    
     <View style={styles.container}>
       <Text style={styles.title}>Lista de Jugadores</Text>
       <FlatList
         data={players}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(i) => i.id}
+        onEndReached={() => fetchPlayers()}
+        onEndReachedThreshold={0.4}
       />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
+  container: { flex: 1, padding: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
 });
-
-export default HomeScreen;
