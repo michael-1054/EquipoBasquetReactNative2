@@ -1,6 +1,13 @@
-// app/screens/PlayerDetails.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, Button } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { db, storage } from '../../_helpers/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -21,33 +28,29 @@ export default function PlayerDetails() {
         if (!snap.exists()) return;
 
         const data = snap.data();
-        setPlayer(data);
+        if (mounted) setPlayer(data);
 
         // 2 · limpiar la ruta de la foto
-        let rawPath = String(data.foto ?? '').trim();   // puede ser "", null, etc.
-
-        if (!rawPath) return;                           // no hay foto
-
+        let rawPath = String(data.foto ?? '').trim();
+        if (!rawPath) return; // no hay foto
         if (!rawPath.startsWith('http')) {
-          // quita "assets/" si quedó grabado así
           rawPath = rawPath.replace(/^assets\//, '');
         }
 
-        console.log('[DEBUG-foto]', `"${rawPath}"`);
-
         // 3 · obtener URL final
         const url = rawPath.startsWith('http')
-          ? rawPath                                    // URL externa
-          : await getDownloadURL(ref(storage, rawPath)); // ruta en bucket
+          ? rawPath // URL externa
+          : await getDownloadURL(ref(storage, rawPath));
 
         if (mounted) setPhotoUrl(url);
-
       } catch (err) {
         console.warn('⚠️  Error cargando detalle', err);
       }
     })();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [playerId]);
 
   if (!player || !photoUrl) {
@@ -55,30 +58,109 @@ export default function PlayerDetails() {
   }
 
   return (
-    <View style={styles.container}>
-      <Image source={{ uri: photoUrl }} style={styles.image} />
-      <Text style={styles.name}>{player.nombre} {player.apellidos}</Text>
-      <Text style={styles.position}>{player.posicion}</Text>
-      <Text>Edad: {player.edad}</Text>
-      <Text>Altura: {player.altura}</Text>
-      <Text>Equipo: {player.equipo}</Text>
+    <ScrollView contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}>
+      <View style={styles.card}>
+        <Image source={{ uri: photoUrl }} style={styles.image} />
+        <Text style={styles.name}>{player.nombre} {player.apellidos}</Text>
+        <Text style={styles.position}>{player.posicion}</Text>
 
-      <Button
-        title="Ver vídeo"
-        onPress={() =>
-          router.push({
-            pathname: '/screens/MediaPlayer',
-            params: { mediaPath: player.video },
-          })
-        }
-      />
-    </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{player.edad}</Text>
+            <Text style={styles.statLabel}>Años</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{player.altura}</Text>
+            <Text style={styles.statLabel}>Altura</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{player.equipo}</Text>
+            <Text style={styles.statLabel}>Equipo</Text>
+          </View>
+        </View>
+
+        <Pressable
+          style={styles.button}
+          android_ripple={{ color: '#fff', foreground: true }}
+          onPress={() =>
+            router.push({
+              pathname: '/screens/MediaPlayer',
+              params: { mediaPath: player.video },
+            })
+          }
+        >
+          <Text style={styles.buttonText}>Ver vídeo</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', padding: 16 },
-  image: { width: 220, height: 220, borderRadius: 110, marginBottom: 16 },
-  name: { fontSize: 26, fontWeight: 'bold' },
-  position: { fontSize: 18, color: 'gray', marginBottom: 8 },
+  scroll: {
+    flexGrow: 1,
+    padding: 24,
+    backgroundColor: '#F2F7FF',
+    alignItems: 'center',
+  },
+  card: {
+    width: '100%',
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  image: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    marginBottom: 20,
+  },
+  name: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#0c95f6',
+    textAlign: 'center',
+  },
+  position: {
+    fontSize: 18,
+    color: '#777',
+    marginBottom: 24,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 24,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#333',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#888',
+  },
+  button: {
+    backgroundColor: '#0c95f6',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
