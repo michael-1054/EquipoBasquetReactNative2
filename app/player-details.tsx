@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,42 +8,42 @@ import {
   Pressable,
   ScrollView,
   TouchableWithoutFeedback,
-} from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { db, storage } from '../_helpers/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { ref, getDownloadURL } from 'firebase/storage';
+} from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
+import { db, storage } from "../_helpers/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { ref, getDownloadURL } from "firebase/storage";
 
 export default function PlayerDetails() {
   const { playerId } = useLocalSearchParams<{ playerId: string }>();
   const [player, setPlayer] = useState<any>();
   const [photoUrl, setPhotoUrl] = useState<string>();
-  const [isZoomed, setIsZoomed] = useState(false); 
+  const [isZoomed, setIsZoomed] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       try {
-        const snap = await getDoc(doc(db, 'players', String(playerId)));
+        const snap = await getDoc(doc(db, "players", String(playerId)));
         if (!snap.exists()) return;
 
         const data = snap.data();
         if (mounted) setPlayer(data);
 
-        let rawPath = String(data.foto ?? '').trim();
+        let rawPath = String(data.foto ?? "").trim();
         if (!rawPath) return;
-        if (!rawPath.startsWith('http')) {
-          rawPath = rawPath.replace(/^assets\//, '');
+        if (!rawPath.startsWith("http")) {
+          rawPath = rawPath.replace(/^assets\//, "");
         }
 
-        const url = rawPath.startsWith('http')
+        const url = rawPath.startsWith("http")
           ? rawPath
           : await getDownloadURL(ref(storage, rawPath));
 
         if (mounted) setPhotoUrl(url);
       } catch (err) {
-        console.warn('⚠️  Error cargando detalle', err);
+        console.warn("⚠️  Error cargando detalle", err);
       }
     })();
 
@@ -61,16 +61,21 @@ export default function PlayerDetails() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.card}>
         <TouchableWithoutFeedback onPress={handleImagePress}>
           <Image
             source={{ uri: photoUrl }}
-            style={isZoomed ? styles.imageZoomed : styles.image} 
+            style={isZoomed ? styles.imageZoomed : styles.image}
           />
         </TouchableWithoutFeedback>
 
-        <Text style={styles.name}>{player.nombre} {player.apellidos}</Text>
+        <Text style={styles.name}>
+          {player.nombre} {player.apellidos}
+        </Text>
         <Text style={styles.position}>{player.posicion}</Text>
 
         <View style={styles.statsRow}>
@@ -90,10 +95,10 @@ export default function PlayerDetails() {
 
         <Pressable
           style={styles.button}
-          android_ripple={{ color: '#fff', foreground: true }}
+          android_ripple={{ color: "#fff", foreground: true }}
           onPress={() =>
             router.push({
-              pathname: '/screens/MediaPlayer',
+              pathname: "/media-player",
               params: { mediaPath: player.video },
             })
           }
@@ -109,16 +114,16 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     padding: 24,
-    backgroundColor: '#F2F7FF',
-    alignItems: 'center',
+    backgroundColor: "#F2F7FF",
+    alignItems: "center",
   },
   card: {
-    width: '100%',
+    width: "100%",
     borderRadius: 24,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -130,7 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: 110,
     marginBottom: 20,
   },
-  imageZoomed: { 
+  imageZoomed: {
     width: 400,
     height: 400,
     borderRadius: 200,
@@ -138,43 +143,43 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0c95f6',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#0c95f6",
+    textAlign: "center",
   },
   position: {
     fontSize: 18,
-    color: '#777',
+    color: "#777",
     marginBottom: 24,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
     marginBottom: 24,
   },
   statBox: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 22,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   statLabel: {
     fontSize: 14,
-    color: '#888',
+    color: "#888",
   },
   button: {
-    backgroundColor: '#0c95f6',
+    backgroundColor: "#0c95f6",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 30,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
