@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { db, storage } from '../../_helpers/firebase';
@@ -17,29 +18,27 @@ export default function PlayerDetails() {
   const { playerId } = useLocalSearchParams<{ playerId: string }>();
   const [player, setPlayer] = useState<any>();
   const [photoUrl, setPhotoUrl] = useState<string>();
+  const [isZoomed, setIsZoomed] = useState(false); 
 
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       try {
-        // 1 · leer documento
         const snap = await getDoc(doc(db, 'players', String(playerId)));
         if (!snap.exists()) return;
 
         const data = snap.data();
         if (mounted) setPlayer(data);
 
-        // 2 · limpiar la ruta de la foto
         let rawPath = String(data.foto ?? '').trim();
-        if (!rawPath) return; // no hay foto
+        if (!rawPath) return;
         if (!rawPath.startsWith('http')) {
           rawPath = rawPath.replace(/^assets\//, '');
         }
 
-        // 3 · obtener URL final
         const url = rawPath.startsWith('http')
-          ? rawPath // URL externa
+          ? rawPath
           : await getDownloadURL(ref(storage, rawPath));
 
         if (mounted) setPhotoUrl(url);
@@ -57,11 +56,20 @@ export default function PlayerDetails() {
     return <ActivityIndicator style={{ marginTop: 40 }} />;
   }
 
+  const handleImagePress = () => {
+    setIsZoomed(!isZoomed);
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.scroll}
-      showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
-        <Image source={{ uri: photoUrl }} style={styles.image} />
+        <TouchableWithoutFeedback onPress={handleImagePress}>
+          <Image
+            source={{ uri: photoUrl }}
+            style={isZoomed ? styles.imageZoomed : styles.image} 
+          />
+        </TouchableWithoutFeedback>
+
         <Text style={styles.name}>{player.nombre} {player.apellidos}</Text>
         <Text style={styles.position}>{player.posicion}</Text>
 
@@ -120,6 +128,12 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
+    marginBottom: 20,
+  },
+  imageZoomed: { 
+    width: 400,
+    height: 400,
+    borderRadius: 200,
     marginBottom: 20,
   },
   name: {
