@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
-import { FlatList, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
-import PlayerCard from '../components/PlayerCard';
+import React, { useState } from "react";
+import {
+  FlatList,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { useFocusEffect, router } from "expo-router";
+import PlayerCard from "../components/PlayerCard";
 
-import { db } from '../_helpers/firebase';
+import { db } from "../_helpers/firebase";
 import {
   collection,
   orderBy,
@@ -13,7 +20,7 @@ import {
   getDocs,
   DocumentData,
   QueryDocumentSnapshot,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 
 interface Player extends DocumentData {
   id: string;
@@ -33,33 +40,41 @@ export default function HomeScreen() {
 
   const fetchPlayers = async (first = false) => {
     const q = first
-      ? query(collection(db, 'players'), orderBy('nombre'), limit(PAGE))
-      : query(collection(db, 'players'), orderBy('nombre'), startAfter(lastDoc), limit(PAGE));
-  
+      ? query(collection(db, "players"), orderBy("nombre"), limit(PAGE))
+      : query(
+          collection(db, "players"),
+          orderBy("nombre"),
+          startAfter(lastDoc),
+          limit(PAGE)
+        );
+
     const snap = await getDocs(q);
     if (snap.empty) return;
-  
+
     const list = snap.docs.map((d) => {
       const data = d.data() as Omit<Player, "id">;
-      return { id: d.id, ...data } as Player; 
+      return { id: d.id, ...data } as Player;
     });
-  
+
     setPlayers((prev) => (first ? list : [...prev, ...list]));
     setLastDoc(snap.docs[snap.docs.length - 1]);
     setLoading(false);
-  };    
+  };
 
   useFocusEffect(
     React.useCallback(() => {
       fetchPlayers(true);
-      return () => { };
+      return () => {};
     }, [])
   );
 
   const renderItem = ({ item }: { item: Player }) => (
     <TouchableOpacity
       onPress={() =>
-        router.push({ pathname: '/screens/PlayerDetails', params: { playerId: item.id } })
+        router.push({
+          pathname: "/player-details",
+          params: { playerId: item.id },
+        })
       }
     >
       <PlayerCard player={item} />
@@ -84,5 +99,5 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
 });
