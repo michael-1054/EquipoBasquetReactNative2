@@ -10,7 +10,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { db, storage } from '../../_helpers/firebase';
+import { db, storage } from '../_helpers/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { ref, getDownloadURL } from 'firebase/storage';
 

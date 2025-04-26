@@ -3,7 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Button, Dimensions } from 'react-n
 import { useLocalSearchParams, router } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
 import { WebView } from 'react-native-webview';
-import { storage } from '../../_helpers/firebase';
+import { storage } from '../_helpers/firebase';
 import { ref, getDownloadURL } from 'firebase/storage';
 
 const { width } = Dimensions.get('window');

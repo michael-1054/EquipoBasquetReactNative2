@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FlatList, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
-import PlayerCard from '../../components/PlayerCard';
+import PlayerCard from '../components/PlayerCard';
 
-import { db } from '../../_helpers/firebase';
+import { db } from '../_helpers/firebase';
 import {
   collection,
   orderBy,
@@ -17,6 +17,11 @@ import {
 
 interface Player extends DocumentData {
   id: string;
+  nombre: string;
+  apellidos: string;
+  posicion: string;
+  edad: number;
+  foto: string;
 }
 
 const PAGE = 10;
@@ -30,15 +35,19 @@ export default function HomeScreen() {
     const q = first
       ? query(collection(db, 'players'), orderBy('nombre'), limit(PAGE))
       : query(collection(db, 'players'), orderBy('nombre'), startAfter(lastDoc), limit(PAGE));
-
+  
     const snap = await getDocs(q);
     if (snap.empty) return;
-
-    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  
+    const list = snap.docs.map((d) => {
+      const data = d.data() as Omit<Player, "id">;
+      return { id: d.id, ...data } as Player; 
+    });
+  
     setPlayers((prev) => (first ? list : [...prev, ...list]));
     setLastDoc(snap.docs[snap.docs.length - 1]);
     setLoading(false);
-  };
+  };    
 
   useFocusEffect(
     React.useCallback(() => {
